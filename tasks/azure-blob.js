@@ -1,6 +1,7 @@
 'use strict';
 
-var azure = require('azure-storage');
+var azure = require('@azure/storage-blob');
+
 var Q = require('q');
 var util = require('util');
 var path = require('path');
@@ -29,7 +30,22 @@ module.exports = function(grunt) {
       maxNumberOfConcurrentUploads: 10 // Maximum number of concurrent uploads
     });
 
-    var blobService = azure.createBlobService();
+    var azureStorageAccount = {
+      AZURE_STORAGE_ACCOUNT : process.env.AZURE_STORAGE_ACCOUNT,
+      AZURE_STORAGE_ACCESS_KEY: process.env.AZURE_STORAGE_ACCESS_KEY
+    };
+
+
+
+
+    var tokenCredential = new azure.StorageSharedKeyCredential(azureStorageAccount.AZURE_STORAGE_ACCOUNT, azureStorageAccount.AZURE_STORAGE_ACCESS_KEY);
+    var blobService = new azure.BlobServiceClient(
+        "https://"+azureStorageAccount.AZURE_STORAGE_ACCOUNT+".blob.core.windows.net",
+        tokenCredential
+    );
+
+
+
     var done = this.async();
     var self = this;
 
@@ -132,7 +148,8 @@ module.exports = function(grunt) {
       count++;
       setTimeout(function() {
         grunt.log.write('.');
-        blobService.createContainerIfNotExists(options.containerName, options.containerOptions, function(error) {
+
+        blobService.getContainerClient(options.containerName).createIfNotExists(options.containerOptions, function(error) {
           if (error) {
             if (error.code !== 'ContainerBeingDeleted') {
               callback(error); // error - abort
@@ -212,7 +229,14 @@ module.exports = function(grunt) {
 
   function copyFileToBlobStorage(containerName, destFileName, sourceFile, metadata) {
     var deferred = Q.defer();
-    blobService.createBlockBlobFromLocalFile(containerName, destFileName, sourceFile, metadata, function(err) {
+
+
+    var blobUrl = "https://"+tokenCredential.accountName+".blob.core.windows.net/"+containerName+"/"+destFileName;
+    var blockBlobClient = new azure.BlockBlobClient(
+        blobUrl,
+        tokenCredential
+    );
+    blockBlobClient.uploadFile(sourceFile,  {metadata: metadata}, function (err) {
       if (err) {
         grunt.log.error(err);
         deferred.reject(err);
@@ -221,6 +245,7 @@ module.exports = function(grunt) {
       }
     });
     return deferred.promise;
+
   }
 
   function gzipFile(source) {
