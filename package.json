@@ -24,7 +24,8 @@
     "@azure/storage-blob": "^12.13.0",
     "mime": "^1.3.4",
     "q": "^1.1.2",
-    "tmp": "0.0.24"
+    "tmp": "0.0.24",
+    "async": "^3.2.4"
   },
   "devDependencies": {
     "grunt": "^0.4.5"

@@ -9,6 +9,7 @@ var zlib = require('zlib');
 var mime = require('mime');
 var fs = require('fs');
 var tmp = require('tmp');
+var async = require('async');
 
 module.exports = function(grunt) {
 
@@ -108,7 +109,7 @@ module.exports = function(grunt) {
     grunt.verbose.writeln(util.format('\tprocess (%s) files', files.length));
 
     // Iterate over all specified file groups, <options.maxNumberOfConcurrentUploads> files at a time
-    grunt.util.async.forEachLimit(files, options.maxNumberOfConcurrentUploads, copyFile, function(err) {
+    async.forEachLimit(files, options.maxNumberOfConcurrentUploads, copyFile, function(err) {
       if (err) {
         deferred.reject(err);
       }
@@ -135,7 +136,7 @@ module.exports = function(grunt) {
       completed = true;
       tryCallback();
     } else {
-      grunt.util.async.whilst(continueAttempts, tryCreate, tryCallback);
+      async.whilst(continueAttempts, tryCreate, tryCallback);
     }
 
     return deferred.promise;
@@ -178,7 +179,7 @@ module.exports = function(grunt) {
     }
   }
 
-  // Iterator called from grunt.util.async.forEachLimit - for each source file in task
+  // Iterator called from async.forEachLimit - for each source file in task
 
   function copyFile(file, callback) {
     var logMessage,
